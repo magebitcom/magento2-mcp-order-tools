@@ -1,0 +1,19 @@
+{
+    "name": "magebitcom/magento2-mcp-order-tools",
+    "description": "Order-domain MCP tools for Magebit_Mcp (read + write over sales orders, invoices, shipments, credit memos, comments, payment)",
+    "type": "magento2-module",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1",
+        "magento/framework": "^103.0",
+        "magebitcom/magento2-mcp-module": "*"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Magebit\\McpOrderTools\\": ""
+        }
+    }
+}

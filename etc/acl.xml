@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Magento_Backend::system">
+                    <resource id="Magebit_Mcp::mcp">
+                        <resource id="Magebit_Mcp::tools">
+
+                            <!-- Read tools -->
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_list"
+                                      title="Tool: List Orders" sortOrder="100"/>
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_get"
+                                      title="Tool: Get Order" sortOrder="101"/>
+
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_invoices"
+                                      title="Tool: List Invoices for Order" sortOrder="110"/>
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_invoice_get"
+                                      title="Tool: Get Invoice" sortOrder="111"/>
+
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_shipments"
+                                      title="Tool: List Shipments for Order" sortOrder="120"/>
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_shipment_get"
+                                      title="Tool: Get Shipment" sortOrder="121"/>
+
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_payment"
+                                      title="Tool: Get Order Payment" sortOrder="130"/>
+
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_comments"
+                                      title="Tool: List Order Comments" sortOrder="140"/>
+
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_credit_memos"
+                                      title="Tool: List Credit Memos for Order" sortOrder="150"/>
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_credit_memo_get"
+                                      title="Tool: Get Credit Memo" sortOrder="151"/>
+
+                            <!-- Write tools -->
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_invoice_create"
+                                      title="Tool: Invoice an Order" sortOrder="200"/>
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_shipment_create"
+                                      title="Tool: Ship an Order" sortOrder="210"/>
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_shipment_track_add"
+                                      title="Tool: Add Tracking Numbers" sortOrder="211"/>
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_credit_memo_create"
+                                      title="Tool: Credit Memo (Refund) an Order" sortOrder="220"/>
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_cancel"
+                                      title="Tool: Cancel Order" sortOrder="230"/>
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_hold"
+                                      title="Tool: Hold Order" sortOrder="240"/>
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_unhold"
+                                      title="Tool: Release Order Hold" sortOrder="241"/>
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_comment_add"
+                                      title="Tool: Add Order Comment" sortOrder="250"/>
+
+                        </resource>
+                    </resource>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>
