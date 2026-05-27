@@ -169,7 +169,38 @@ Custom write tools SHOULD implement `UnderlyingAclAwareInterface` any time
 they delegate to a Magento service contract that has an established admin
 ACL.
 
+## Payment `additional_information` in tool responses
+
+A payment record's `additional_information` is a free-form blob that PSP
+modules fill with gateway state — tokenized card references, 3DS payloads,
+payer IP/email, raw gateway responses. **None of it is returned to the MCP
+client by default.** `sales.order.payment` and the `payment` slice of
+`sales.order.get` both pass the blob through
+`Magebit\McpOrderTools\Model\Payment\AdditionalInformationFilter`, a positive
+(allowlist) filter that is empty out of the box.
+
+To expose specific safe keys (e.g. a human-readable method title), add them
+to the allowlist:
+
+```xml
+<type name="Magebit\McpOrderTools\Model\Payment\AdditionalInformationFilter">
+    <arguments>
+        <argument name="allowlist" xsi:type="array">
+            <item name="method_title" xsi:type="string">method_title</item>
+        </argument>
+    </arguments>
+</type>
+```
+
+Only allowlist keys you are certain carry no PSP secret or PCI-scope data.
+
 ## Redaction of PII in audit logs
+
+> **This is a different layer from the response filter above.** The PII
+> redactor sanitizes what lands in the **audit-log row**; it does **not**
+> touch the response payload returned to the MCP client. Use the
+> `AdditionalInformationFilter` above to control the response; use the
+> redactor below to control the audit log. Configure both.
 
 Argument and result payloads flow through `Magebit_Mcp`'s PII redactor
 before being written to the audit log. By default the redactor fingerprints

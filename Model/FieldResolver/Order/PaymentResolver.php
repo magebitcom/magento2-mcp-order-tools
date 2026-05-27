@@ -9,17 +9,26 @@ declare(strict_types=1);
 namespace Magebit\McpOrderTools\Model\FieldResolver\Order;
 
 use Magebit\McpOrderTools\Api\OrderFieldResolverInterface;
+use Magebit\McpOrderTools\Model\Payment\AdditionalInformationFilter;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\OrderPaymentInterface;
 
 /**
- * Payment-method slice. `additional_information` is forwarded as-is; PSP-
- * specific keys that contain PII should be added to the base-module PII
- * redactor's `additionalSensitiveKeys` argument (see `docs/EXTENDING.md`).
+ * Payment-method slice. `additional_information` is filtered through an allowlist
+ * ({@see AdditionalInformationFilter}) before returning — the base-module PII
+ * redactor only sanitizes the audit row, never this response payload.
  */
 class PaymentResolver implements OrderFieldResolverInterface
 {
     public const KEY = 'payment';
+
+    /**
+     * @param AdditionalInformationFilter $additionalInformationFilter
+     */
+    public function __construct(
+        private readonly AdditionalInformationFilter $additionalInformationFilter
+    ) {
+    }
 
     /** @inheritDoc */
     public function getKey(): string
@@ -44,7 +53,9 @@ class PaymentResolver implements OrderFieldResolverInterface
             'method' => (string) $payment->getMethod(),
             'cc_type' => $payment->getCcType(),
             'cc_last4' => $payment->getCcLast4(),
-            'additional_information' => $payment->getAdditionalInformation(),
+            'additional_information' => $this->additionalInformationFilter->filter(
+                $payment->getAdditionalInformation()
+            ),
         ];
     }
 }

@@ -66,8 +66,9 @@ class CommentList implements ToolInterface
     /** @inheritDoc */
     public function getDescription(): string
     {
-        return 'List status-history comments on an order. Optional filter '
-            . '`is_visible_on_front` narrows to customer-visible entries.';
+        return 'List status-history comments on an order. Returns only '
+            . 'customer-visible entries by default; pass `is_visible_on_front: '
+            . 'false` to retrieve internal admin-only notes instead.';
     }
 
     /** @inheritDoc */
@@ -118,12 +119,13 @@ class CommentList implements ToolInterface
             OrderStatusHistoryInterface::PARENT_ID,
             (int) $order->getEntityId()
         );
-        if (array_key_exists('is_visible_on_front', $arguments)) {
-            $this->searchCriteriaBuilder->addFilter(
-                OrderStatusHistoryInterface::IS_VISIBLE_ON_FRONT,
-                $arguments['is_visible_on_front'] ? 1 : 0
-            );
-        }
+        // Default-safe: customer-visible entries only. Internal admin notes
+        // (is_visible_on_front = 0) are returned only when explicitly requested.
+        $visibleOnFront = $arguments['is_visible_on_front'] ?? true;
+        $this->searchCriteriaBuilder->addFilter(
+            OrderStatusHistoryInterface::IS_VISIBLE_ON_FRONT,
+            $visibleOnFront ? 1 : 0
+        );
         $criteria = $this->searchCriteriaBuilder
             ->setPageSize($pageSize)
             ->setCurrentPage($page)

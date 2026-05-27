@@ -10,12 +10,14 @@ namespace Magebit\McpOrderTools\Tool\Sales\Order;
 
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolResultInterface;
+use Magebit\Mcp\Api\UnderlyingAclAwareInterface;
 use Magebit\Mcp\Model\Tool\Schema\Builder\IntegerBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\McpOrderTools\Model\EntityFinder;
+use Magebit\McpOrderTools\Model\Payment\AdditionalInformationFilter;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Api\Data\OrderPaymentInterface;
@@ -26,10 +28,16 @@ use Magento\Sales\Api\TransactionRepositoryInterface;
  * MCP tool `sales.order.payment` — fetch the payment record + associated
  * transactions for an order.
  */
-class PaymentGet implements ToolInterface
+class PaymentGet implements ToolInterface, UnderlyingAclAwareInterface
 {
     public const TOOL_NAME = 'sales.order.payment';
     public const ACL_RESOURCE = 'Magebit_McpOrderTools::tool_sales_order_payment';
+
+    /**
+     * Admin-UI resource gating the order-view page where the payment / transaction
+     * section is rendered. Enforces "MCP cannot do what the admin UI cannot".
+     */
+    public const UNDERLYING_ACL_RESOURCE = 'Magento_Sales::actions_view';
 
     private const TRANSACTION_PAGE_SIZE = 100;
 
@@ -37,11 +45,13 @@ class PaymentGet implements ToolInterface
      * @param EntityFinder $entityFinder
      * @param TransactionRepositoryInterface $transactionRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param AdditionalInformationFilter $additionalInformationFilter
      */
     public function __construct(
         private readonly EntityFinder $entityFinder,
         private readonly TransactionRepositoryInterface $transactionRepository,
-        private readonly SearchCriteriaBuilder $searchCriteriaBuilder
+        private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
+        private readonly AdditionalInformationFilter $additionalInformationFilter
     ) {
     }
 
@@ -80,6 +90,12 @@ class PaymentGet implements ToolInterface
     }
 
     /** @inheritDoc */
+    public function getUnderlyingAclResource(): ?string
+    {
+        return self::UNDERLYING_ACL_RESOURCE;
+    }
+
+    /** @inheritDoc */
     public function getWriteMode(): WriteMode
     {
         return WriteMode::READ;
@@ -103,7 +119,9 @@ class PaymentGet implements ToolInterface
                 'method' => (string) $payment->getMethod(),
                 'cc_type' => $payment->getCcType(),
                 'cc_last4' => $payment->getCcLast4(),
-                'additional_information' => $payment->getAdditionalInformation(),
+                'additional_information' => $this->additionalInformationFilter->filter(
+                    $payment->getAdditionalInformation()
+                ),
             ]
             : null;
 

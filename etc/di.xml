@@ -66,6 +66,16 @@
         </arguments>
     </type>
 
+    <!-- Response-side allowlist for payment `additional_information`. Empty by
+         default so no PSP secrets leak to the MCP client; operators add only the
+         keys they explicitly want exposed (e.g. a method title). This is NOT the
+         audit-log PII redactor — it filters the response payload itself. -->
+    <type name="Magebit\McpOrderTools\Model\Payment\AdditionalInformationFilter">
+        <arguments>
+            <argument name="allowlist" xsi:type="array"/>
+        </arguments>
+    </type>
+
     <!-- Order field resolvers (shared between `sales.order.get` and a
          narrower subset for `sales.order.list`). -->
     <type name="Magebit\McpOrderTools\Tool\Sales\Order\OrderGet">
