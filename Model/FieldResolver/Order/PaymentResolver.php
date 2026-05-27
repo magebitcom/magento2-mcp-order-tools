@@ -14,11 +14,9 @@ use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\OrderPaymentInterface;
 
 /**
- * Payment-method slice. `additional_information` is passed through a response-
- * side allowlist filter ({@see AdditionalInformationFilter}) so PSP secrets do
- * not leak to the MCP client; only operator-allowlisted keys are returned. Note
- * this is distinct from the base-module PII redactor, which sanitizes the audit
- * row, NOT this response payload (see `docs/EXTENDING.md`).
+ * Payment-method slice. `additional_information` is filtered through an allowlist
+ * ({@see AdditionalInformationFilter}) before returning — the base-module PII
+ * redactor only sanitizes the audit row, never this response payload.
  */
 class PaymentResolver implements OrderFieldResolverInterface
 {

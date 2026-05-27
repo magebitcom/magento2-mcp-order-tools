@@ -9,14 +9,9 @@ declare(strict_types=1);
 namespace Magebit\McpOrderTools\Model\Payment;
 
 /**
- * Positive (allowlist) filter for a payment record's `additional_information`.
- *
- * PSP modules use `additional_information` as a free-form store for per-order
- * gateway state — tokenized card references, 3DS payloads, payer IP/email, raw
- * gateway responses. None of that should reach an MCP client by default, so the
- * tool response carries only the keys an operator has explicitly allowlisted.
- * The base-module PII redactor does NOT cover this path: it sanitizes the audit
- * row, never the response payload returned over the wire.
+ * Allowlist filter for a payment record's `additional_information`, which PSP
+ * modules fill with gateway secrets. Empty by default so nothing reaches the MCP
+ * client; the base-module PII redactor covers only the audit row, not this path.
  */
 class AdditionalInformationFilter
 {
