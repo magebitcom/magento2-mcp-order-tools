@@ -18,6 +18,7 @@ use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\McpOrderTools\Api\OrderFieldResolverInterface;
+use Magebit\McpOrderTools\Model\FieldResolver\Order\OnDemandResolver;
 use Magebit\McpOrderTools\Model\Search\OrderSearchCriteriaBuilder;
 use Magebit\Mcp\Model\Util\ResolverPipeline;
 use Magento\Framework\Exception\LocalizedException;
@@ -64,7 +65,10 @@ class OrderList implements ToolInterface
             . 'range, grand-total range, customer email, increment id, store '
             . 'id, website id) and paging. Each result row is composed from '
             . 'the same field resolvers as `sales.order.get`; use '
-            . '`fields`/`exclude` to narrow.';
+            . '`fields`/`exclude` to narrow. Line items are available on '
+            . 'request: include "items" in `fields` (kept out of default '
+            . 'rows for payload size). For item-level filtering or '
+            . 'aggregation prefer `sales.order.item.list`.';
     }
 
     /** @inheritDoc */
@@ -110,7 +114,7 @@ class OrderList implements ToolInterface
         $criteria = $this->searchBuilder->build($arguments);
         $result = $this->orderRepository->getList($criteria);
 
-        $plan = $this->pipeline->plan($this->fieldResolvers, $arguments);
+        $plan = $this->pipeline->plan($this->requestedResolvers($arguments), $arguments);
 
         $rows = [];
         foreach ($result->getItems() as $order) {
@@ -142,5 +146,26 @@ class OrderList implements ToolInterface
                 'page_size' => $criteria->getPageSize(),
             ]
         );
+    }
+
+    /**
+     * Drops opt-in resolvers whose key was not explicitly requested via
+     * `fields`, so expensive slices don't run for default list calls.
+     *
+     * @param array $arguments
+     * @phpstan-param array<string, mixed> $arguments
+     * @return OrderFieldResolverInterface[]
+     */
+    private function requestedResolvers(array $arguments): array
+    {
+        $resolvers = [];
+        foreach ($this->fieldResolvers as $resolver) {
+            if ($resolver instanceof OnDemandResolver && !$resolver->isRequested($arguments)) {
+                continue;
+            }
+            $resolvers[] = $resolver;
+        }
+
+        return $resolvers;
     }
 }

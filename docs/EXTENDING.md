@@ -87,6 +87,29 @@ The two arguments every read tool accepts:
 
 Useful when an LLM over-fetches or when a specific slice is expensive.
 
+### Opt-in (on-demand) slices
+
+Wrapping a resolver in
+`Magebit\McpOrderTools\Model\FieldResolver\Order\OnDemandResolver` inverts
+the default: the slice renders **only** when its key is explicitly listed in
+`fields`. The module ships one such registration — `items` on
+`sales.order.list` — so default list payloads stay small while
+`fields: ["identity", "items"]` returns line items in bulk. To make your own
+slice opt-in, register it through a `virtualType`:
+
+```xml
+<virtualType name="Vendor\GiftWrap\Mcp\Resolver\OnDemandGiftWrapResolver"
+             type="Magebit\McpOrderTools\Model\FieldResolver\Order\OnDemandResolver">
+    <arguments>
+        <argument name="inner" xsi:type="object">
+            Vendor\GiftWrap\Mcp\Resolver\GiftWrapResolver
+        </argument>
+    </arguments>
+</virtualType>
+```
+
+and point the tool's `fieldResolvers` item at the virtual type.
+
 ## Add a new filter to `sales.order.list`
 
 Built-in filters cover every `OrderInterface` column. For custom attributes
@@ -134,6 +157,52 @@ final class LoyaltyMinPointsTranslator implements OrderFilterTranslatorInterface
 Unsupported filter keys fail fast with `INVALID_PARAMS` rather than silently
 ignoring — your translator must claim the key via `supports()` before the
 built-in dispatch falls through.
+
+## Add a new filter to `sales.order.item.list`
+
+`sales.order.item.list` queries the `sales_order_item` collection (joined to
+`sales_order` as `so`) rather than order-level searchCriteria, so it has its
+own translator contract: `OrderItemFilterTranslatorInterface`. The
+`translate()` signature receives the item collection, giving you full access
+to `addFieldToFilter()` and `getSelect()` for joins:
+
+```php
+<?php
+declare(strict_types=1);
+
+namespace Vendor\Warehouse\Mcp\Filter;
+
+use Magebit\McpOrderTools\Api\OrderItemFilterTranslatorInterface;
+use Magento\Sales\Model\ResourceModel\Order\Item\Collection;
+
+final class WarehouseIdTranslator implements OrderItemFilterTranslatorInterface
+{
+    public function supports(string $key): bool
+    {
+        return $key === 'warehouse_id';
+    }
+
+    public function translate(string $key, mixed $value, Collection $collection): void
+    {
+        $collection->addFieldToFilter('main_table.warehouse_id', ['eq' => (int) $value]);
+    }
+}
+```
+
+```xml
+<type name="Magebit\McpOrderTools\Model\Search\OrderItemQuery">
+    <arguments>
+        <argument name="filterTranslators" xsi:type="array">
+            <item name="warehouse_id" xsi:type="object">
+                Vendor\Warehouse\Mcp\Filter\WarehouseIdTranslator
+            </item>
+        </argument>
+    </arguments>
+</type>
+```
+
+Prefix custom columns with `main_table.` (or `so.` for order columns) — the
+join makes unqualified names ambiguous.
 
 ## Per-entity resolver interfaces
 

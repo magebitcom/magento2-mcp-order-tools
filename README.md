@@ -31,8 +31,9 @@ module is designed to be optional.
 
 | Tool | What it does |
 |---|---|
-| `sales.order.list` | Paginated order search; filter by status, state, date range, grand-total range, customer email, increment id, store id, website id. |
+| `sales.order.list` | Paginated order search; filter by status, state, date range, grand-total range, customer email, increment id, store id, website id. Line items are opt-in per row via `fields: ["items", ...]`. |
 | `sales.order.get` | Single order by entity id or increment id with full detail (identity, state, customer, addresses, items, totals, payment, timestamps). |
+| `sales.order.item.list` | Bulk order-line-item search across orders; filter by order status/state, date range, SKU (exact, `*glob*`, or array), product type, store id, website id. Optional `group_by` aggregate mode returns `SUM(qty_ordered)` / `SUM(row_total)` / order count per group — answers "units sold per SKU" questions in one call. |
 | `sales.order.invoices` | Every invoice on an order. |
 | `sales.order.invoice.get` | One invoice by id or increment id. |
 | `sales.order.shipments` | Every shipment on an order. |
@@ -69,6 +70,7 @@ the same action in the admin UI.
 See `docs/EXTENDING.md` for:
 - adding a new field to any tool response via `*FieldResolverInterface`;
 - adding a new filter to `sales.order.list` via `OrderFilterTranslatorInterface`;
+- adding a new filter to `sales.order.item.list` via `OrderItemFilterTranslatorInterface`;
 - the ACL layering rules for custom write tools;
 - PII redactor configuration for PSP-specific payment fields.
 

@@ -12,6 +12,9 @@
                 <item name="sales.order.get" xsi:type="object">
                     Magebit\McpOrderTools\Tool\Sales\Order\OrderGet
                 </item>
+                <item name="sales.order.item.list" xsi:type="object">
+                    Magebit\McpOrderTools\Tool\Sales\Order\OrderItemList
+                </item>
                 <item name="sales.order.invoices" xsi:type="object">
                     Magebit\McpOrderTools\Tool\Sales\Order\InvoiceList
                 </item>
@@ -109,6 +112,18 @@
         </arguments>
     </type>
 
+    <!-- `items` is wrapped in OnDemandResolver: list rows include it only
+         when the caller explicitly asks via fields:["items"], so default
+         list payloads stay small and no per-order item loading happens. -->
+    <virtualType name="Magebit\McpOrderTools\Model\FieldResolver\Order\OnDemandItemsResolver"
+                 type="Magebit\McpOrderTools\Model\FieldResolver\Order\OnDemandResolver">
+        <arguments>
+            <argument name="inner" xsi:type="object">
+                Magebit\McpOrderTools\Model\FieldResolver\Order\ItemsResolver
+            </argument>
+        </arguments>
+    </virtualType>
+
     <type name="Magebit\McpOrderTools\Tool\Sales\Order\OrderList">
         <arguments>
             <argument name="fieldResolvers" xsi:type="array">
@@ -120,6 +135,9 @@
                 </item>
                 <item name="customer" xsi:type="object">
                     Magebit\McpOrderTools\Model\FieldResolver\Order\CustomerResolver
+                </item>
+                <item name="items" xsi:type="object">
+                    Magebit\McpOrderTools\Model\FieldResolver\Order\OnDemandItemsResolver
                 </item>
                 <item name="totals" xsi:type="object">
                     Magebit\McpOrderTools\Model\FieldResolver\Order\TotalsResolver

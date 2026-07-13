@@ -13,6 +13,8 @@
                                       title="Tool: List Orders" sortOrder="100"/>
                             <resource id="Magebit_McpOrderTools::tool_sales_order_get"
                                       title="Tool: Get Order" sortOrder="101"/>
+                            <resource id="Magebit_McpOrderTools::tool_sales_order_item_list"
+                                      title="Tool: List Order Items" sortOrder="102"/>
 
                             <resource id="Magebit_McpOrderTools::tool_sales_order_invoices"
                                       title="Tool: List Invoices for Order" sortOrder="110"/>
