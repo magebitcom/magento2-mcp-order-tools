@@ -10,7 +10,6 @@ namespace Magebit\McpOrderTools\Model\FieldResolver\Shipment;
 
 use Magebit\McpOrderTools\Api\ShipmentFieldResolverInterface;
 use Magento\Sales\Api\Data\ShipmentInterface;
-use Magento\Sales\Api\Data\ShipmentItemInterface;
 
 /**
  * Lines shipped — qty + SKU + weight.
@@ -36,9 +35,6 @@ class ItemsResolver implements ShipmentFieldResolverInterface
     {
         $rows = [];
         foreach ($shipment->getItems() as $item) {
-            if (!$item instanceof ShipmentItemInterface) {
-                continue;
-            }
             $rows[] = [
                 'entity_id' => (int) $item->getEntityId(),
                 'order_item_id' => (int) $item->getOrderItemId(),

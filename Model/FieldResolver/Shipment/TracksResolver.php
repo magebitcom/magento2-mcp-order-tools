@@ -10,7 +10,6 @@ namespace Magebit\McpOrderTools\Model\FieldResolver\Shipment;
 
 use Magebit\McpOrderTools\Api\ShipmentFieldResolverInterface;
 use Magento\Sales\Api\Data\ShipmentInterface;
-use Magento\Sales\Api\Data\ShipmentTrackInterface;
 
 /**
  * Shipment tracking records — carrier, title, tracking number.
@@ -36,9 +35,6 @@ class TracksResolver implements ShipmentFieldResolverInterface
     {
         $rows = [];
         foreach ($shipment->getTracks() as $track) {
-            if (!$track instanceof ShipmentTrackInterface) {
-                continue;
-            }
             $rows[] = [
                 'entity_id' => (int) $track->getEntityId(),
                 'carrier_code' => (string) $track->getCarrierCode(),

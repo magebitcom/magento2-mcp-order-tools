@@ -236,7 +236,8 @@ class ShipmentCreate implements ToolInterface, UnderlyingAclAwareInterface
             return null;
         }
         $comment = $this->commentFactory->create();
-        $comment->setComment((string) ($raw['text'] ?? ''));
+        $text = $raw['text'] ?? '';
+        $comment->setComment(is_string($text) ? $text : '');
         $comment->setIsVisibleOnFront((int) (bool) ($raw['is_visible_on_front'] ?? false));
         return $comment;
     }

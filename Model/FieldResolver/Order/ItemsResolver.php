@@ -10,7 +10,6 @@ namespace Magebit\McpOrderTools\Model\FieldResolver\Order;
 
 use Magebit\McpOrderTools\Api\OrderFieldResolverInterface;
 use Magento\Sales\Api\Data\OrderInterface;
-use Magento\Sales\Api\Data\OrderItemInterface;
 
 /**
  * Parent order lines only — bundle / configurable children are dropped to
@@ -37,9 +36,6 @@ class ItemsResolver implements OrderFieldResolverInterface
     {
         $rows = [];
         foreach ($order->getItems() as $item) {
-            if (!$item instanceof OrderItemInterface) {
-                continue;
-            }
             if ($item->getParentItem() !== null) {
                 continue;
             }
