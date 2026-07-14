@@ -17,21 +17,22 @@ jobs:
       - name: Checkout module
         uses: actions/checkout@v4
 
+      - name: Allow phpstan/extension-installer composer plugin
+        run: composer config --global allow-plugins.phpstan/extension-installer true
+
       - name: Set up Magento project with module
         id: magento
-        uses: magebitcom/setup-magento-module-action@v1.0.0
+        uses: magebitcom/setup-magento-module-action@v1
         with:
-          magento-version: "~2.4.8"
+          magento-version: "2.4.7-p3"
           php-version: "8.3"
           composer-auth-user: ${{ secrets.MAGENTO_AUTH_USER }}
           composer-auth-pass: ${{ secrets.MAGENTO_AUTH_PASS }}
-
-      - name: Install PHPStan toolchain
-        working-directory: ${{ steps.magento.outputs.project-path }}
-        run: |
-          composer config allow-plugins.phpstan/extension-installer true
-          composer require --dev --no-progress --no-interaction \
-            "phpstan/phpstan:^2.0" "bitexpert/phpstan-magento:^0.42" "phpstan/extension-installer:^1.4"
+          extra-packages: >-
+            phpstan/phpstan:^2.0
+            bitexpert/phpstan-magento:^0.42
+            phpstan/extension-installer:^1.4
+            phpunit/phpunit:^9.5
 
       - name: Run PHPStan
         working-directory: ${{ steps.magento.outputs.project-path }}
@@ -47,14 +48,22 @@ jobs:
       - name: Checkout module
         uses: actions/checkout@v4
 
+      - name: Allow phpstan/extension-installer composer plugin
+        run: composer config --global allow-plugins.phpstan/extension-installer true
+
       - name: Set up Magento project with module
         id: magento
         uses: magebitcom/setup-magento-module-action@v1
         with:
-          magento-version: "~2.4.8"
+          magento-version: "2.4.7-p3"
           php-version: "8.3"
           composer-auth-user: ${{ secrets.MAGENTO_AUTH_USER }}
           composer-auth-pass: ${{ secrets.MAGENTO_AUTH_PASS }}
+          extra-packages: >-
+            phpstan/phpstan:^2.0
+            bitexpert/phpstan-magento:^0.42
+            phpstan/extension-installer:^1.4
+            phpunit/phpunit:^9.5
 
       - name: Run unit tests
         working-directory: ${{ steps.magento.outputs.project-path }}
