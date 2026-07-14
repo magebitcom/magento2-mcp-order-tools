@@ -132,9 +132,6 @@ class PaymentGet implements ToolInterface, UnderlyingAclAwareInterface
                 ->setPageSize(self::TRANSACTION_PAGE_SIZE)
                 ->create();
             foreach ($this->transactionRepository->getList($criteria)->getItems() as $txn) {
-                if (!$txn instanceof TransactionInterface) {
-                    continue;
-                }
                 $transactions[] = [
                     'transaction_id' => (int) $txn->getTransactionId(),
                     'parent_id' => $txn->getParentId() !== null ? (int) $txn->getParentId() : null,

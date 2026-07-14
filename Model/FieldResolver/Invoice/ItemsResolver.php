@@ -10,7 +10,6 @@ namespace Magebit\McpOrderTools\Model\FieldResolver\Invoice;
 
 use Magebit\McpOrderTools\Api\InvoiceFieldResolverInterface;
 use Magento\Sales\Api\Data\InvoiceInterface;
-use Magento\Sales\Api\Data\InvoiceItemInterface;
 
 /**
  * Lines invoiced — qty + prices per SKU.
@@ -36,9 +35,6 @@ class ItemsResolver implements InvoiceFieldResolverInterface
     {
         $rows = [];
         foreach ($invoice->getItems() as $item) {
-            if (!$item instanceof InvoiceItemInterface) {
-                continue;
-            }
             $rows[] = [
                 'entity_id' => (int) $item->getEntityId(),
                 'order_item_id' => (int) $item->getOrderItemId(),

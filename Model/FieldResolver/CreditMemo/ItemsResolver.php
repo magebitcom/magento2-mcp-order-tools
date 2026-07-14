@@ -10,7 +10,6 @@ namespace Magebit\McpOrderTools\Model\FieldResolver\CreditMemo;
 
 use Magebit\McpOrderTools\Api\CreditMemoFieldResolverInterface;
 use Magento\Sales\Api\Data\CreditmemoInterface;
-use Magento\Sales\Api\Data\CreditmemoItemInterface;
 
 /**
  * Refunded line items.
@@ -36,9 +35,6 @@ class ItemsResolver implements CreditMemoFieldResolverInterface
     {
         $rows = [];
         foreach ($creditMemo->getItems() as $item) {
-            if (!$item instanceof CreditmemoItemInterface) {
-                continue;
-            }
             $rows[] = [
                 'entity_id' => (int) $item->getEntityId(),
                 'order_item_id' => (int) $item->getOrderItemId(),

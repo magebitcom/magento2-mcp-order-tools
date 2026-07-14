@@ -111,7 +111,8 @@ class Cancel implements ToolInterface, UnderlyingAclAwareInterface
         if (isset($arguments['comment']) && is_array($arguments['comment'])) {
             $history = $this->historyFactory->create();
             $history->setParentId($orderId);
-            $history->setComment((string) ($arguments['comment']['text'] ?? ''));
+            $text = $arguments['comment']['text'] ?? '';
+            $history->setComment(is_string($text) ? $text : '');
             $history->setIsVisibleOnFront(
                 (int) (bool) ($arguments['comment']['is_visible_on_front'] ?? false)
             );
