@@ -9,11 +9,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-env:
-  COMPOSER_PACKAGE: magebitcom/magento2-mcp-order-tools
-  MAGENTO_VERSION: "~2.4.8"
-  PHP_VERSION: "8.3"
-
 jobs:
   phpstan:
     name: PHPStan
@@ -21,114 +16,48 @@ jobs:
     steps:
       - name: Checkout module
         uses: actions/checkout@v4
+
+      - name: Set up Magento project with module
+        id: magento
+        uses: magebitcom/setup-magento-module-action@v1
         with:
-          path: module
+          magento-version: "~2.4.8"
+          php-version: "8.3"
+          composer-auth-user: ${{ secrets.MAGENTO_AUTH_USER }}
+          composer-auth-pass: ${{ secrets.MAGENTO_AUTH_PASS }}
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: bcmath, ctype, curl, dom, gd, iconv, intl, mbstring, openssl, pdo_mysql, simplexml, soap, sockets, xsl, zip
-          coverage: none
-          tools: composer:v2
-
-      - name: Verify repo.magento.com credentials are configured
+      - name: Install PHPStan toolchain
+        working-directory: ${{ steps.magento.outputs.project-path }}
         run: |
-          if [ -z "${{ secrets.MAGENTO_COMPOSER_USERNAME }}" ] || [ -z "${{ secrets.MAGENTO_COMPOSER_PASSWORD }}" ]; then
-            echo "::error::MAGENTO_COMPOSER_USERNAME / MAGENTO_COMPOSER_PASSWORD secrets are not set (org or repo level)."
-            exit 1
-          fi
-
-      - name: Authenticate with repo.magento.com
-        run: composer global config http-basic.repo.magento.com "${{ secrets.MAGENTO_COMPOSER_USERNAME }}" "${{ secrets.MAGENTO_COMPOSER_PASSWORD }}"
-
-      - name: Resolve Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer global config cache-files-dir --absolute)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Composer packages
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: composer-magento-${{ env.MAGENTO_VERSION }}-php-${{ env.PHP_VERSION }}-${{ github.run_id }}
-          restore-keys: |
-            composer-magento-${{ env.MAGENTO_VERSION }}-php-${{ env.PHP_VERSION }}-
-
-      - name: Create Magento project skeleton
-        run: |
-          composer create-project --repository-url=https://repo.magento.com/ \
-            "magento/project-community-edition:${{ env.MAGENTO_VERSION }}" magento \
-            --no-install --no-interaction
-
-      - name: Install Magento with module and PHPStan toolchain
-        working-directory: magento
-        run: |
-          composer config --no-plugins allow-plugins true
-          composer config repositories.module \
-            '{"type": "path", "url": "../module", "options": {"symlink": true, "versions": {"magebitcom/magento2-mcp-order-tools": "9999.0.0"}}}'
-          composer require --no-update "magebitcom/magento2-mcp-order-tools:9999.0.0"
-          composer require --no-update --dev \
+          composer config allow-plugins.phpstan/extension-installer true
+          composer require --dev --no-progress --no-interaction \
             "phpstan/phpstan:^2.0" "bitexpert/phpstan-magento:^0.42" "phpstan/extension-installer:^1.4"
-          composer update --no-interaction --no-progress
 
       - name: Run PHPStan
-        working-directory: magento
-        run: vendor/bin/phpstan analyse ../module -c ../module/phpstan.neon --no-progress --memory-limit=4G
+        working-directory: ${{ steps.magento.outputs.project-path }}
+        run: >-
+          vendor/bin/phpstan analyse "${{ steps.magento.outputs.module-path }}"
+          -c "${{ steps.magento.outputs.module-path }}/phpstan.neon"
+          --no-progress --memory-limit=4G
 
   unit-tests:
     name: Unit tests
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout module
         uses: actions/checkout@v4
+
+      - name: Set up Magento project with module
+        id: magento
+        uses: magebitcom/setup-magento-module-action@v1
         with:
-          path: module
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: bcmath, ctype, curl, dom, gd, iconv, intl, mbstring, openssl, pdo_mysql, simplexml, soap, sockets, xsl, zip
-          coverage: none
-          tools: composer:v2
-
-      - name: Verify repo.magento.com credentials are configured
-        run: |
-          if [ -z "${{ secrets.MAGENTO_COMPOSER_USERNAME }}" ] || [ -z "${{ secrets.MAGENTO_COMPOSER_PASSWORD }}" ]; then
-            echo "::error::MAGENTO_COMPOSER_USERNAME / MAGENTO_COMPOSER_PASSWORD secrets are not set (org or repo level)."
-            exit 1
-          fi
-
-      - name: Authenticate with repo.magento.com
-        run: composer global config http-basic.repo.magento.com "${{ secrets.MAGENTO_COMPOSER_USERNAME }}" "${{ secrets.MAGENTO_COMPOSER_PASSWORD }}"
-
-      - name: Resolve Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer global config cache-files-dir --absolute)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Composer packages
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: composer-magento-${{ env.MAGENTO_VERSION }}-php-${{ env.PHP_VERSION }}-${{ github.run_id }}
-          restore-keys: |
-            composer-magento-${{ env.MAGENTO_VERSION }}-php-${{ env.PHP_VERSION }}-
-
-      - name: Create Magento project skeleton
-        run: |
-          composer create-project --repository-url=https://repo.magento.com/ \
-            "magento/project-community-edition:${{ env.MAGENTO_VERSION }}" magento \
-            --no-install --no-interaction
-
-      - name: Install Magento with module
-        working-directory: magento
-        run: |
-          composer config --no-plugins allow-plugins true
-          composer config repositories.module \
-            '{"type": "path", "url": "../module", "options": {"symlink": true, "versions": {"magebitcom/magento2-mcp-order-tools": "9999.0.0"}}}'
-          composer require --no-update "magebitcom/magento2-mcp-order-tools:9999.0.0"
-          composer update --no-interaction --no-progress
+          magento-version: "~2.4.8"
+          php-version: "8.3"
+          composer-auth-user: ${{ secrets.MAGENTO_AUTH_USER }}
+          composer-auth-pass: ${{ secrets.MAGENTO_AUTH_PASS }}
 
       - name: Run unit tests
-        working-directory: magento
-        run: vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist ../module/Test/Unit
+        working-directory: ${{ steps.magento.outputs.project-path }}
+        run: >-
+          vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist
+          "${{ steps.magento.outputs.module-path }}/Test/Unit"
