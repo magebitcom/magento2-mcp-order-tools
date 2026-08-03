@@ -76,13 +76,21 @@ class OrderList implements ToolInterface
     {
         return Schema::object()
             ->with(Filters::describing(
-                'Filter clauses. Built-in keys: status, '
-                . 'state, created_at_from, created_at_to, '
-                . 'grand_total_min, grand_total_max, customer_email, '
-                . 'increment_id, store_id, website_id. Scalar or '
-                . 'array values (array ⇒ IN). `website_id` is '
-                . 'expanded to the matching store-view ids — orders '
-                . 'carry no website column.'
+                'Filter clauses. Scalar or array values (array ⇒ IN). '
+                . '`website_id` is expanded to the matching store-view ids — '
+                . 'orders carry no website column.',
+                [
+                    'status' => ['type' => ['string', 'array'], 'description' => 'Order status code(s), e.g. "processing".'],
+                    'state' => ['type' => ['string', 'array'], 'description' => 'Order state code(s).'],
+                    'increment_id' => ['type' => ['string', 'array'], 'description' => 'Human-facing order number(s).'],
+                    'customer_email' => ['type' => ['string', 'array'], 'description' => 'Exact customer email(s).'],
+                    'store_id' => ['type' => ['integer', 'array'], 'description' => 'Store view id(s).'],
+                    'website_id' => ['type' => ['integer', 'array'], 'description' => 'Website id(s).'],
+                    'created_at_from' => ['type' => 'string', 'description' => 'ISO date/datetime lower bound.'],
+                    'created_at_to' => ['type' => 'string', 'description' => 'ISO date/datetime upper bound.'],
+                    'grand_total_min' => ['type' => 'number', 'description' => 'Minimum grand total.'],
+                    'grand_total_max' => ['type' => 'number', 'description' => 'Maximum grand total.'],
+                ]
             ))
             ->with(Sort::fields(OrderSearchCriteriaBuilder::SORTABLE_FIELDS))
             ->with(Pagination::maxPageSize(OrderSearchCriteriaBuilder::MAX_PAGE_SIZE))

@@ -68,12 +68,22 @@ class OrderItemList implements ToolInterface
     {
         return Schema::object()
             ->with(Filters::describing(
-                'Filter clauses. Built-in keys: order_status, order_state, '
-                . 'created_at_from, created_at_to (order placement window), '
-                . 'sku (exact match, `*glob*` wildcard, or array ⇒ IN), '
-                . 'product_type, store_id, website_id, parent_items_only '
-                . '(boolean, default true — drops bundle/configurable child '
-                . 'lines so quantities are not double-counted).'
+                'Filter clauses. Scalar or array values (array ⇒ IN); '
+                . 'created_at_* bound the order placement window.',
+                [
+                    'order_status' => ['type' => ['string', 'array'], 'description' => 'Parent order status code(s).'],
+                    'order_state' => ['type' => ['string', 'array'], 'description' => 'Parent order state code(s).'],
+                    'created_at_from' => ['type' => 'string', 'description' => 'Order placement ISO date/datetime lower bound.'],
+                    'created_at_to' => ['type' => 'string', 'description' => 'Order placement ISO date/datetime upper bound.'],
+                    'sku' => ['type' => ['string', 'array'], 'description' => 'SKU: exact, `*glob*` wildcard, or array ⇒ IN.'],
+                    'product_type' => ['type' => ['string', 'array'], 'description' => 'Product type code(s), e.g. "simple".'],
+                    'store_id' => ['type' => ['integer', 'array'], 'description' => 'Store view id(s).'],
+                    'website_id' => ['type' => ['integer', 'array'], 'description' => 'Website id(s), expanded to store-view ids.'],
+                    'parent_items_only' => [
+                        'type' => 'boolean',
+                        'description' => 'Default true — drops bundle/configurable child lines so quantities are not double-counted.',
+                    ],
+                ]
             ))
             ->array('group_by', fn (ArrayBuilder $a) => $a
                 ->ofStrings(fn (StringBuilder $s) => $s

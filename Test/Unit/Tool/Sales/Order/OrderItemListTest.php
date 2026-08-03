@@ -51,6 +51,36 @@ class OrderItemListTest extends TestCase
         }
     }
 
+    public function testSchemaDeclaresTypedFilterKeys(): void
+    {
+        $schema = $this->tool->getInputSchema();
+        $this->assertIsArray($schema['properties']);
+        $filters = $schema['properties']['filters'];
+        $this->assertIsArray($filters);
+        $this->assertTrue($filters['additionalProperties']);
+        $props = $filters['properties'];
+        $this->assertIsArray($props);
+
+        $expected = [
+            'order_status' => ['string', 'array'],
+            'order_state' => ['string', 'array'],
+            'created_at_from' => 'string',
+            'created_at_to' => 'string',
+            'sku' => ['string', 'array'],
+            'product_type' => ['string', 'array'],
+            'store_id' => ['integer', 'array'],
+            'website_id' => ['integer', 'array'],
+            'parent_items_only' => 'boolean',
+        ];
+        $this->assertSame(array_keys($expected), array_keys($props));
+        foreach ($expected as $key => $type) {
+            $prop = $props[$key];
+            $this->assertIsArray($prop);
+            $this->assertSame($type, $prop['type'], $key);
+            $this->assertNotEmpty($prop['description'], $key);
+        }
+    }
+
     public function testListModeReturnsItemRows(): void
     {
         $this->query->expects($this->once())
