@@ -47,6 +47,37 @@ class OrderListTest extends TestCase
         $this->onDemandItems = new OnDemandResolver($items);
     }
 
+    public function testSchemaDeclaresTypedFilterKeys(): void
+    {
+        $schema = $this->tool()->getInputSchema();
+        $this->assertIsArray($schema['properties']);
+        $filters = $schema['properties']['filters'];
+        $this->assertIsArray($filters);
+        $this->assertTrue($filters['additionalProperties']);
+        $props = $filters['properties'];
+        $this->assertIsArray($props);
+
+        $expected = [
+            'status' => ['string', 'array'],
+            'state' => ['string', 'array'],
+            'increment_id' => ['string', 'array'],
+            'customer_email' => ['string', 'array'],
+            'store_id' => ['integer', 'array'],
+            'website_id' => ['integer', 'array'],
+            'created_at_from' => 'string',
+            'created_at_to' => 'string',
+            'grand_total_min' => 'number',
+            'grand_total_max' => 'number',
+        ];
+        $this->assertSame(array_keys($expected), array_keys($props));
+        foreach ($expected as $key => $type) {
+            $prop = $props[$key];
+            $this->assertIsArray($prop);
+            $this->assertSame($type, $prop['type'], $key);
+            $this->assertNotEmpty($prop['description'], $key);
+        }
+    }
+
     public function testOnDemandResolverSkippedByDefault(): void
     {
         $this->pipeline->expects($this->once())
