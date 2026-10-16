@@ -61,7 +61,7 @@ $item->setSku(InjectionPayload::PRODUCT_SKU)
 $order = $om->create(Order::class);
 $order->setIncrementId(InjectionPayload::ORDER_INCREMENT_ID)
     ->setState(Order::STATE_PROCESSING)
-    ->setStatus($order->getConfig()->getStateDefaultStatus(Order::STATE_PROCESSING))
+    ->setStatus((string) $order->getConfig()->getStateDefaultStatus(Order::STATE_PROCESSING))
     ->setStoreId(1)
     ->setSubtotal(10)
     ->setBaseSubtotal(10)
@@ -69,7 +69,7 @@ $order->setIncrementId(InjectionPayload::ORDER_INCREMENT_ID)
     ->setBaseGrandTotal(10)
     ->setOrderCurrencyCode('USD')
     ->setBaseCurrencyCode('USD')
-    ->setCustomerIsGuest(true)
+    ->setCustomerIsGuest(1)
     ->setCustomerFirstname('Mcpsec')
     ->setCustomerLastname('Fixture')
     ->setCustomerEmail(InjectionPayload::CUSTOMER_EMAIL)
@@ -77,12 +77,19 @@ $order->setIncrementId(InjectionPayload::ORDER_INCREMENT_ID)
     ->setShippingAddress($shipping)
     ->addItem($item)
     ->setPayment($payment);
-$om->get(OrderRepositoryInterface::class)->save($order);
+/** @var OrderRepositoryInterface $orderRepository */
+$orderRepository = $om->get(OrderRepositoryInterface::class);
+$orderRepository->save($order);
 
-$history = $om->get(OrderStatusHistoryInterfaceFactory::class)->create();
-$history->setParentId((int) $order->getEntityId())
+/** @var OrderStatusHistoryInterfaceFactory $historyFactory */
+$historyFactory = $om->get(OrderStatusHistoryInterfaceFactory::class);
+$history = $historyFactory->create();
+$orderId = $order->getEntityId();
+$history->setParentId(is_numeric($orderId) ? (int) $orderId : 0)
     ->setComment(InjectionPayload::TEXT)
     ->setIsVisibleOnFront(1)
     ->setIsCustomerNotified(0)
     ->setEntityName('order');
-$om->get(OrderStatusHistoryRepositoryInterface::class)->save($history);
+/** @var OrderStatusHistoryRepositoryInterface $historyRepository */
+$historyRepository = $om->get(OrderStatusHistoryRepositoryInterface::class);
+$historyRepository->save($history);

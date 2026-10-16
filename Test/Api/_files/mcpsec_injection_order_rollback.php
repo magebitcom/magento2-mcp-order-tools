@@ -26,7 +26,9 @@ $registry->register('isSecureArea', true);
 $order = $om->create(Order::class);
 $order->loadByIncrementId(InjectionPayload::ORDER_INCREMENT_ID);
 if ($order->getId()) {
-    $om->get(OrderRepositoryInterface::class)->delete($order);
+    /** @var OrderRepositoryInterface $orderRepository */
+    $orderRepository = $om->get(OrderRepositoryInterface::class);
+    $orderRepository->delete($order);
 }
 
 $registry->unregister('isSecureArea');
