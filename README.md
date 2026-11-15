@@ -55,7 +55,7 @@ Desktop, etc.) prompt before firing.
 | `sales.order.invoice.create` | yes | `InvoiceOrderInterface::execute()` |
 | `sales.order.shipment.create` | yes | `ShipOrderInterface::execute()` |
 | `sales.order.shipment.track.add` | no | `ShipmentTrackRepositoryInterface::save()` |
-| `sales.order.credit_memo.create` | yes | `RefundOrderInterface::execute()` + optional online refund |
+| `sales.order.credit_memo.create` | yes | `RefundOrderInterface::execute()` (offline), `RefundInvoiceInterface::execute()` (online) |
 | `sales.order.cancel` | yes | `OrderManagementInterface::cancel()` |
 | `sales.order.hold` | yes | `OrderManagementInterface::hold()` |
 | `sales.order.unhold` | no | `OrderManagementInterface::unHold()` |

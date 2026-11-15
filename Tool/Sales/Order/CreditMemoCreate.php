@@ -22,20 +22,25 @@ use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\McpOrderTools\Model\EntityFinder;
 use Magebit\McpOrderTools\Model\Tool\Helper\LineItemValidator;
+use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Sales\Api\CreditmemoManagementInterface;
-use Magento\Sales\Api\CreditmemoRepositoryInterface;
 use Magento\Sales\Api\Data\CreditmemoCommentCreationInterface;
 use Magento\Sales\Api\Data\CreditmemoCommentCreationInterfaceFactory;
 use Magento\Sales\Api\Data\CreditmemoCreationArgumentsInterface;
 use Magento\Sales\Api\Data\CreditmemoCreationArgumentsInterfaceFactory;
 use Magento\Sales\Api\Data\CreditmemoItemCreationInterface;
 use Magento\Sales\Api\Data\CreditmemoItemCreationInterfaceFactory;
+use Magento\Sales\Api\Data\InvoiceInterface;
+use Magento\Sales\Api\Data\OrderInterface;
+use Magento\Sales\Api\InvoiceRepositoryInterface;
+use Magento\Sales\Api\RefundInvoiceInterface;
 use Magento\Sales\Api\RefundOrderInterface;
+use Magento\Sales\Model\Order\Invoice;
+use Magento\Sales\Model\Order\Payment;
 
 /**
  * MCP write tool `sales.order.credit_memo.create`. `is_online=true` triggers
- * a real gateway refund via {@see CreditmemoManagementInterface::refund()}.
+ * a real gateway refund via {@see RefundInvoiceInterface::execute()}.
  */
 class CreditMemoCreate implements ToolInterface, UnderlyingAclAwareInterface
 {
@@ -45,8 +50,9 @@ class CreditMemoCreate implements ToolInterface, UnderlyingAclAwareInterface
     /**
      * @param EntityFinder $entityFinder
      * @param RefundOrderInterface $refundOrder
-     * @param CreditmemoManagementInterface $creditMemoManagement
-     * @param CreditmemoRepositoryInterface $creditMemoRepository
+     * @param RefundInvoiceInterface $refundInvoice
+     * @param InvoiceRepositoryInterface $invoiceRepository
+     * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param CreditmemoItemCreationInterfaceFactory $itemFactory
      * @param CreditmemoCommentCreationInterfaceFactory $commentFactory
      * @param CreditmemoCreationArgumentsInterfaceFactory $argsFactory
@@ -55,8 +61,9 @@ class CreditMemoCreate implements ToolInterface, UnderlyingAclAwareInterface
     public function __construct(
         private readonly EntityFinder $entityFinder,
         private readonly RefundOrderInterface $refundOrder,
-        private readonly CreditmemoManagementInterface $creditMemoManagement,
-        private readonly CreditmemoRepositoryInterface $creditMemoRepository,
+        private readonly RefundInvoiceInterface $refundInvoice,
+        private readonly InvoiceRepositoryInterface $invoiceRepository,
+        private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
         private readonly CreditmemoItemCreationInterfaceFactory $itemFactory,
         private readonly CreditmemoCommentCreationInterfaceFactory $commentFactory,
         private readonly CreditmemoCreationArgumentsInterfaceFactory $argsFactory,
@@ -82,7 +89,9 @@ class CreditMemoCreate implements ToolInterface, UnderlyingAclAwareInterface
         return 'Create a credit memo for an order. `is_online=false` (default) '
             . 'produces an offline refund — the DB is updated but the payment '
             . 'gateway is not touched. `is_online=true` calls the gateway — '
-            . 'use with extreme care. Partial refunds via `items`; '
+            . 'use with extreme care. It refunds a paid invoice with a captured '
+            . 'payment transaction; pass `invoice_id` when the order has several. '
+            . 'Partial refunds via `items`; '
             . '`adjustment_positive` adds to the refund, `adjustment_negative` '
             . 'subtracts.';
     }
@@ -93,6 +102,7 @@ class CreditMemoCreate implements ToolInterface, UnderlyingAclAwareInterface
         return Schema::object()
             ->integer('order_id', fn (IntegerBuilder $i) => $i->minimum(1))
             ->string('order_increment_id', fn (StringBuilder $s) => $s->minLength(1))
+            ->integer('invoice_id', fn (IntegerBuilder $i) => $i->minimum(1))
             ->array('items', fn (ArrayBuilder $a) => $a
                 ->ofObjects(fn (ObjectBuilder $o) => $o
                     ->integer('item_id', fn (IntegerBuilder $i) => $i->minimum(1)->required())
@@ -147,20 +157,32 @@ class CreditMemoCreate implements ToolInterface, UnderlyingAclAwareInterface
         $comment = $this->buildComment($arguments['comment'] ?? null);
         $extra = $this->buildArguments($arguments);
 
-        $memoId = (int) $this->refundOrder->execute(
-            $orderId,
-            $items,
-            $notify,
-            $comment !== null,
-            $comment,
-            $extra
-        );
+        if (!$isOnline && isset($arguments['invoice_id'])) {
+            throw new LocalizedException(
+                __('Parameter "invoice_id" applies only to online refunds; set is_online=true or omit it.')
+            );
+        }
 
         if ($isOnline) {
-            // RefundOrderInterface always runs offline; trigger the gateway
-            // refund explicitly on the memo we just created.
-            $memo = $this->creditMemoRepository->get($memoId);
-            $this->creditMemoManagement->refund($memo, true);
+            $invoice = $this->invoiceForOnlineRefund($order, $arguments['invoice_id'] ?? null);
+            $memoId = (int) $this->refundInvoice->execute(
+                (int) $invoice->getEntityId(),
+                $items,
+                true,
+                $notify,
+                $comment !== null,
+                $comment,
+                $extra
+            );
+        } else {
+            $memoId = (int) $this->refundOrder->execute(
+                $orderId,
+                $items,
+                $notify,
+                $comment !== null,
+                $comment,
+                $extra
+            );
         }
 
         $payload = [
@@ -182,6 +204,80 @@ class CreditMemoCreate implements ToolInterface, UnderlyingAclAwareInterface
                 'is_online' => $isOnline,
             ]
         );
+    }
+
+    /**
+     * @param OrderInterface $order
+     * @param mixed $invoiceId
+     * @return InvoiceInterface
+     * @throws LocalizedException
+     */
+    private function invoiceForOnlineRefund(OrderInterface $order, mixed $invoiceId): InvoiceInterface
+    {
+        $orderId = (int) $order->getEntityId();
+
+        if ($invoiceId !== null) {
+            $invoice = $this->entityFinder->invoiceFrom(['invoice_id' => $invoiceId]);
+            if ((int) $invoice->getOrderId() !== $orderId) {
+                throw new LocalizedException(
+                    __('Invoice %1 does not belong to order %2.', (int) $invoice->getEntityId(), $orderId)
+                );
+            }
+            if (!$this->canRefundOnline($order, $invoice)) {
+                throw new LocalizedException(__(
+                    'Invoice %1 cannot be refunded online: it must be paid, not fully refunded and have a '
+                    . 'captured payment transaction, and the payment method must allow the refund. '
+                    . 'Use is_online=false for an offline refund.',
+                    (int) $invoice->getEntityId()
+                ));
+            }
+            return $invoice;
+        }
+
+        $criteria = $this->searchCriteriaBuilder
+            ->addFilter(InvoiceInterface::ORDER_ID, $orderId)
+            ->create();
+        $candidates = array_values(array_filter(
+            $this->invoiceRepository->getList($criteria)->getItems(),
+            fn (InvoiceInterface $invoice): bool => $this->canRefundOnline($order, $invoice)
+        ));
+
+        if ($candidates === []) {
+            throw new LocalizedException(__(
+                'Order %1 has no invoice that can be refunded online (a paid, not fully refunded invoice with a '
+                . 'captured payment transaction that the payment method allows to refund). '
+                . 'Use is_online=false for an offline refund.',
+                $orderId
+            ));
+        }
+        if (count($candidates) > 1) {
+            throw new LocalizedException(__(
+                'Order %1 has several invoices that can be refunded online; pass invoice_id to choose one.',
+                $orderId
+            ));
+        }
+        return $candidates[0];
+    }
+
+    /**
+     * @param OrderInterface $order
+     * @param InvoiceInterface $invoice
+     * @return bool
+     */
+    private function canRefundOnline(OrderInterface $order, InvoiceInterface $invoice): bool
+    {
+        $payment = $order->getPayment();
+        if (!$invoice instanceof Invoice
+            || !$invoice->canRefund()
+            || (string) $invoice->getTransactionId() === ''
+            || !$payment instanceof Payment
+            || !$payment->canRefund()
+        ) {
+            return false;
+        }
+
+        return ($payment->canRefundPartialPerInvoice() && $payment->getAmountPaid() > $payment->getAmountRefunded())
+            || !$invoice->getIsUsedForRefund();
     }
 
     /**
